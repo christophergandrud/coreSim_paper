@@ -1,0 +1,125 @@
+% !TeX root = RJwrapper.tex
+\title{A Backbone for Simulating Quantities of Interest from Generalized Linear
+Models}
+\author{by Christopher Gandrud}
+
+\maketitle
+
+\abstract{%
+Simulating quantities of interest estimated from generalized linear
+models (GLM) can be an effective way to explore and communicate
+statistical results. \pkg{coreSim} provides core functions that can
+serve as a reliable and extensible ``backbone'' to new packages for
+simulating quantaties of interest for finding and plotting simulated
+quantities of interest from GLMs. I demonstrate how to use \pkg{coreSim}
+as a backbone by showing how it is incorporated into the new
+\pkg{pltesim} package for simulating and displaying probabilistic
+long-term effects in models with temporal dependence.
+}
+
+\subsection{Introduction}\label{introduction}
+
+There has been a recent trend in the social sciences to improve the
+interpretation of results from generalized linear models (GLM) by
+presenting estimated quantities of interest from substantively
+meaningful scenarios
+\citep[e.g.][]{gandrud2005,Licht2011,WilliamsWhitten2012}.
+\citet{King2000} advanced a post-estimation simulation technique for
+estimating the uncertainty around these estimates. A number of R
+packages implement this approach {[}CITE{]}. In particular, the
+\CRANpkg{Zelig} package \citep{R-Zelig} implements this technique for a
+wide range of model types in an attempt to be ``everyone's statistical
+software''.
+
+While all of these packages based on the same simulation procedure, all
+of these packages rely on different, custom built ways of doing these
+simulations. This presents unnecessarily increases the labor needed to
+use post-estimation simulations for showing results in new modelling
+situations. Current implementations of these packages have also proven
+to be unreliable in ways directly related to their architecture.
+
+In this paper I introduce a new R package--\CRANpkg{coreSim}--that aims
+to be an extensible and reliable ``backbone'' for future analyses and R
+packages that find post-estimation simulations for substantively
+relevant scenarios. I give an example of this by showing how
+\pkg{coreSim} forms the basis of the new \pkg{pltesim} package for
+simulating and displaying probabilistic long-term effects in models with
+temporal dependence.
+
+\subsection{Post-estimation simulations from
+GLMs}\label{post-estimation-simulations-from-glms}
+
+One way to estimate substantively meaningful quantities of interest for
+complex scenarios from with their associated uncertainty is through
+post-estimation
+simulations.\footnote{See \citet{King2000} for a comparision with related fully Bayesisan Markov chain Monte Carlo and Bootstrapping methods.}
+The procedure is straightforward. Remember that a generalized linear
+models can be summarized by two equations. One describes the stochastic
+component:
+
+\begin{equation}
+Y_{i} \sim f(\theta_{i}, \alpha)
+\end{equation}
+
+\noindent Here the dependent variable \(Y\) is a random drawn from the
+probability density function \(f(\theta_{i}, \alpha)\). The other
+equation describes the systematic component:
+
+\begin{equation}
+\hspace{1cm} \theta_{i} = g(X_{i}, \beta),
+\end{equation}
+
+where \(X\) is a vector of explanatory variables and \(\beta\) is a
+vector of effect parameters. The function \(g\) is often referred to as
+the link function, which specifies how the variables and effect
+parameters are translated into \(\theta\).
+
+We can use post-estimation simulations to find and communicate
+substantively meaningful results from these models. To do this we first
+estimate \(\hat{\beta}\) and \(\hat{\alpha}\). Second, we drawn \(n\)
+number of values of these parameters from the multivariate normal
+distribution using the parameter point estimates and their variance
+covariance matrix with a mean of \(\hat{\gamma}\)--a vector created by
+stacking \(\hat{\beta}\) and \(\hat{\alpha}\)--and variance of
+\(\hat{V(\hat{\gamma})}\):
+
+This is straightforward using two functions from the \CRANpkg{stats}
+package--\code{coef} and \code{vcov}--as well as the \code{mvrnorm}
+function from the \CRANpkg{MASS} package. Both \CRANpkg{stats} and
+\CRANpkg{MASS} are included with the default R installation. For
+example:
+
+\begin{Schunk}
+\begin{Sinput}
+# Load package that contains the Prestige data set
+library(car)
+
+# Estimate normal linear model
+m1 <- lm(prestige ~ education + type, data = Prestige)
+
+# Extract 
+\end{Sinput}
+\end{Schunk}
+
+\subsection{Previous post-estimation simulation
+packages}\label{previous-post-estimation-simulation-packages}
+
+The \CRANpkg{Zelig} package could potentially help streamline this
+process and in so doing form the basis of R packages that generate
+post-estimation simuliations in novel areas.
+
+\CRANpkg{Zelig} has a number of issues that have made it unreliable over
+time. By aiming to be everyone's statistical software, \CRANpkg{Zelig}
+relies on many (13 imported) dependencies.
+
+\subsection{Summary}\label{summary}
+
+\bibliography{gandrud}
+
+\address{%
+Christopher Gandrud\\
+City University London and Hertie School of Governance\\
+Rhind Building\\ London, EC1V 0HB\\
+}
+\href{mailto:christopher.gandrud@city.ac.uk}{\nolinkurl{christopher.gandrud@city.ac.uk}}
+
