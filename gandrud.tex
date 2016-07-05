@@ -66,7 +66,7 @@ probability density function \(f(\theta_{i}, \alpha)\). The other
 equation describes the systematic component:
 
 \begin{equation}
-\hspace{1cm} \theta_{i} = g(X_{i}, \beta),
+\theta_{i} = g(X_{i}, \beta),
 \end{equation}
 
 where \(X\) is a vector of explanatory variables and \(\beta\) is a
@@ -81,25 +81,118 @@ number of values of these parameters from the multivariate normal
 distribution using the parameter point estimates and their variance
 covariance matrix with a mean of \(\hat{\gamma}\)--a vector created by
 stacking \(\hat{\beta}\) and \(\hat{\alpha}\)--and variance of
-\(\hat{V(\hat{\gamma})}\):
+\(\hat{\mathrm{V}}(\hat{\gamma})\):
 
-This is straightforward using two functions from the \CRANpkg{stats}
-package--\code{coef} and \code{vcov}--as well as the \code{mvrnorm}
-function from the \CRANpkg{MASS} package. Both \CRANpkg{stats} and
-\CRANpkg{MASS} are included with the default R installation. For
-example:
+\begin{equation}
+\widetilde{\gamma} \sim \mathrm{N}(\hat{\gamma}, \hat{\mathrm{V}}(\hat{\gamma})) 
+\end{equation}
+
+Drawing these simulations is straightforward using two functions from
+the \CRANpkg{stats} package--\code{coef} and \code{vcov}--as well as the
+\code{mvrnorm} function from the \CRANpkg{MASS} package. Both
+\CRANpkg{stats} and \CRANpkg{MASS} are included with the default R
+installation. For example:
 
 \begin{Schunk}
 \begin{Sinput}
 # Load package that contains the Prestige data set
 library(car)
 
+library(MASS)
+
 # Estimate normal linear model
 m1 <- lm(prestige ~ education + type, data = Prestige)
 
-# Extract 
+# Extract coeficient estimates
+m1_coef <- coef(m1)
+
+# Extract variance-covariance matrix
+m1_vcov <- vcov(m1)
+
+# Draw 1000 simulations from multivariate normal distribution
+m1_sims <- mvrnorm(n = 1000, mu = m1_coef, Sigma = m1_vcov)
+
+head(m1_sims)
 \end{Sinput}
+\begin{Soutput}
+#>       (Intercept) education  typeprof      typewc
+#> [1,]  -2.46299473  4.479084  6.791089  -1.1362359
+#> [2,]  -3.37548512  4.822845  1.722389  -6.1467418
+#> [3,]  -9.23523872  5.116772  7.931571  -4.9137734
+#> [4,] -10.82754562  5.565439 -2.061336 -10.0247785
+#> [5,]  -0.06587696  3.996145 10.140270  -0.5249211
+#> [6,]   4.38447086  3.891146  7.054453  -5.1137317
+\end{Soutput}
 \end{Schunk}
+
+Now that we have the simulated effect coefficients, we can find our
+quantity of interest for a given scenario. In this example, our quantity
+of interest is simply the predicted value of the \code{prestige}
+dependent variable. We simply need to find the systematic component from
+the linear form for each simulation:
+\(g(X_{i}, \beta) = X_{i}\beta_{i} = \beta_{0} + X_{i1}\beta_{1} + X_{i2}\beta_{2} + \ldots\).
+For example imagine that we want to find the predicted level of
+\code{prestige} when \code{education} is at its median (10.54) and the
+type of profession is \code{prof}. We could calculate \code{prestige}
+for this scenario using:
+
+\begin{Schunk}
+\begin{Sinput}
+# Create a data frame with the scenario values
+fitted <- data.matrix(data.frame(education = 10.54, typeprof = 1))
+
+# Reformat simulations
+intercept <- m1_sims[, 1] # extract intercept
+other_betas <- data.matrix(m1_sims[, colnames(fitted)]) 
+
+# Find quantitiy of interest
+qi <- intercept + (other_betas %*% c(fitted))
+
+head(qi)
+\end{Sinput}
+\begin{Soutput}
+#>          [,1]
+#> [1,] 51.53764
+#> [2,] 49.17970
+#> [3,] 52.62711
+#> [4,] 45.77085
+#> [5,] 52.19376
+#> [6,] 52.45161
+\end{Soutput}
+\end{Schunk}
+
+Finally, we can trim of outliers by keeping the central 95\% interval
+and then visualise the results.
+
+\begin{Schunk}
+\begin{Sinput}
+# Find lower and upper bound of the simulations' central 95% interval 
+lower_bound <- quantile(qi, probs = 0.25)
+upper_bound <- quantile(qi, probs = 0.975)
+
+# Restrict the simulations to the central 95% interval
+qi <- qi[qi > lower_bound]
+qi <- qi[qi < upper_bound]
+
+# Plot
+plot(density(qi))
+\end{Sinput}
+
+\includegraphics{gandrud_files/figure-latex/unnamed-chunk-3-1} \end{Schunk}
+
+This is a trivial example that shows the basic steps required to find
+quantities of interest from post-estimation simulations. The use of this
+technique in this context does not provide us with much more information
+than we could relatively easily find using the point estimates
+themselves and their confidence intervals. Where post-estimation
+simulations are much more useful is for exploring more complex,
+contrasting scenarios, often with interactions and non-linearities.
+These relationships can be difficult to meaningfully interpret with
+individual point estimates and their associated confidence intervals.
+
+The process for finding these scenarios with post-estimation simulations
+is in practice much more difficult as it requires calculating quantities
+of interest for each scenario.
 
 \subsection{Previous post-estimation simulation
 packages}\label{previous-post-estimation-simulation-packages}
